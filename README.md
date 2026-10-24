@@ -91,7 +91,7 @@ private static final String LNG = "0.0";   // TODO 改成你所在位置的经�
 **步骤**
 
 ```bash
-git clone https://github.com/<you>/fastwater.git
+git clone https://github.com/t17633678010-design/fastwater.git
 cd fastwater
 
 export ANDROID_HOME=/path/to/android-sdk

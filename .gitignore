@@ -1,0 +1,37 @@
+# 构建产物
+dist/
+build/
+*.apk
+*.aab
+
+# 签名文件（绝不入库）
+*.keystore
+*.jks
+*.p12
+
+# 本机配置
+local.properties
+*.local
+
+# 逆向/分析中间产物
+apk/
+data/
+mitm/
+*.mitm
+*.dex
+
+# 凭证
+tools/token.txt
+*.token
+cookies.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

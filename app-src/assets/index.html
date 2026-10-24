@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>极速水控</title>
+<style>
+:root{
+  --bg:#F7F8FA; --card:#FFFFFF; --text:#141A24; --sub:#7C8798;
+  --line:#EDF0F4; --pri:#2F6BFF; --pri-soft:#EBF1FF;
+  --ok:#12B76A; --warn:#F79009; --err:#F04438;
+  --shadow:0 2px 12px rgba(20,26,36,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+body{padding-bottom:96px}
+
+/* 顶部 */
+header{padding:calc(22px + env(safe-area-inset-top,0px)) 18px 14px}
+.hd-row{display:flex;align-items:center;justify-content:space-between}
+.hd-title{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.hd-title span{color:var(--pri)}
+.icon-btn{width:36px;height:36px;border-radius:12px;background:var(--card);
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);
+  font-size:17px;border:none;color:var(--sub)}
+.acct{margin-top:10px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--sub)}
+.pill{background:var(--pri-soft);color:var(--pri);padding:3px 9px;border-radius:999px;
+  font-weight:600;font-size:12px}
+
+/* 设备卡片 */
+.list{padding:4px 14px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;
+  transition:transform .12s ease,box-shadow .12s ease;position:relative}
+.card:active{transform:scale(.985)}
+.card.dead{opacity:.55}
+.ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:23px;flex:none;background:var(--pri-soft)}
+.ico.wash{background:#EAF6FF}
+.ico.water{background:#E8F7F3}
+.ico.bath{background:#FFF3E6}
+.meta{flex:1;min-width:0}
+.name{font-size:16px;font-weight:650;display:flex;align-items:center;gap:7px}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.badge.idle{background:#E7F8F0;color:var(--ok)}
+.badge.busy{background:#FFF4E5;color:var(--warn)}
+.org{font-size:12.5px;color:var(--sub);margin-top:3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.go{font-size:20px;color:#C8D0DC;flex:none}
+
+/* 空态 */
+.empty{text-align:center;padding:70px 30px;color:var(--sub)}
+.empty .big{font-size:46px;margin-bottom:14px;opacity:.5}
+.empty p{font-size:14px;line-height:1.7;margin:6px 0}
+.link{color:var(--pri);font-weight:600;text-decoration:none}
+
+/* 底部操作栏 */
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(247,248,250,0),var(--bg) 32%);
+  display:flex;gap:10px}
+.btn{flex:1;height:50px;border-radius:15px;border:none;font-size:15.5px;font-weight:650;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--pri);color:#fff;box-shadow:0 6px 18px rgba(47,107,255,.28)}
+.btn.ghost{background:var(--card);color:var(--text);box-shadow:var(--shadow);flex:0 0 104px}
+
+/* 底部弹层 */
+.mask{position:fixed;inset:0;background:rgba(12,16,24,.42);opacity:0;pointer-events:none;
+  transition:opacity .22s;z-index:50;backdrop-filter:blur(2px)}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);
+  border-radius:24px 24px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.9,.3,1);z-index:60;
+  max-height:86vh;overflow-y:auto}
+.sheet.on{transform:translateY(0)}
+.grab{width:38px;height:4px;border-radius:2px;background:#E3E8EF;margin:6px auto 16px}
+.sh-title{font-size:18px;font-weight:700;margin-bottom:3px}
+.sh-sub{font-size:13px;color:var(--sub);margin-bottom:16px}
+.opt{display:flex;align-items:center;gap:13px;padding:14px;border-radius:15px;
+  border:1.5px solid var(--line);margin-bottom:10px;transition:.15s}
+.opt:active{transform:scale(.985)}
+.opt.sel{border-color:var(--pri);background:var(--pri-soft)}
+.opt .o-ico{font-size:22px}
+.opt .o-name{font-weight:650;font-size:15px}
+.opt .o-price{font-size:12.5px;color:var(--sub);margin-top:2px}
+.opt .o-radio{margin-left:auto;width:20px;height:20px;border-radius:50%;
+  border:2px solid #D5DCE6;flex:none}
+.opt.sel .o-radio{border-color:var(--pri);background:var(--pri);
+  box-shadow:inset 0 0 0 3.5px #fff}
+.sh-btn{margin-top:14px;width:100%;height:52px;border-radius:16px;border:none;
+  background:var(--pri);color:#fff;font-size:16.5px;font-weight:700;
+  box-shadow:0 8px 20px rgba(47,107,255,.3)}
+.sh-btn:disabled{opacity:.5;box-shadow:none}
+.tip{font-size:12px;color:var(--sub);text-align:center;margin-top:12px;line-height:1.6}
+
+/* 运行中 */
+.running{background:linear-gradient(135deg,#2F6BFF,#5B8CFF);color:#fff;
+  border-radius:18px;padding:18px;margin:0 14px 12px;box-shadow:0 10px 26px rgba(47,107,255,.3)}
+.running .r-top{display:flex;justify-content:space-between;align-items:center}
+.running .r-t{font-size:16px;font-weight:700}
+.running .r-s{font-size:12.5px;opacity:.85;margin-top:4px}
+.running .r-time{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:12px}
+.running .r-hint{font-size:12.5px;opacity:.9;margin-top:8px;line-height:1.6;
+  background:rgba(255,255,255,.16);padding:8px 11px;border-radius:10px}
+.running .r-stop{margin-top:14px;width:100%;height:44px;border-radius:13px;border:none;
+  background:rgba(255,255,255,.22);color:#fff;font-size:14.5px;font-weight:650}
+
+/* 设置页 */
+.settings{padding:0 18px}
+.settings h2{font-size:20px;margin:22px 0 6px}
+.settings p{font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 14px}
+textarea,input{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:13px;
+  font-size:14px;font-family:ui-monospace,Menlo,monospace;background:#FBFCFE;color:var(--text);
+  outline:none;resize:none}
+textarea:focus,input:focus{border-color:var(--pri)}
+.hidden{display:none!important}
+
+/* 登录页 */
+#loginView{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;
+  flex-direction:column;padding:0 26px}
+#loginView .lg-logo{width:74px;height:74px;border-radius:22px;margin:76px 0 20px;
+  background:linear-gradient(160deg,#2F6BFF,#5B8CFF);display:flex;align-items:center;
+  justify-content:center;font-size:36px;box-shadow:0 12px 30px rgba(47,107,255,.3)}
+#loginView h1{font-size:25px;margin:0 0 6px;letter-spacing:-.4px}
+#loginView .lg-sub{font-size:13.5px;color:var(--sub);margin:0 0 30px;line-height:1.6}
+.lg-field{background:var(--card);border-radius:15px;padding:4px 15px;margin-bottom:12px;
+  display:flex;align-items:center;box-shadow:var(--shadow)}
+.lg-field input{border:none;background:none;box-shadow:none;padding:15px 0;font-size:15.5px;
+  font-family:inherit;flex:1;outline:none;color:var(--text)}
+.lg-field .pfx{font-size:15px;color:var(--sub);margin-right:9px;font-weight:600}
+.code-btn{border:none;background:none;color:var(--pri);font-size:14px;font-weight:650;
+  padding:8px 2px 8px 12px;white-space:nowrap}
+.code-btn:disabled{color:#B6BFCC}
+.lg-btn{width:100%;height:52px;border-radius:16px;border:none;background:var(--pri);
+  color:#fff;font-size:16.5px;font-weight:700;margin-top:14px;
+  box-shadow:0 8px 22px rgba(47,107,255,.28)}
+.lg-btn:disabled{opacity:.5;box-shadow:none}
+.lg-foot{font-size:12px;color:var(--sub);text-align:center;margin-top:auto;
+  padding-bottom:calc(26px + env(safe-area-inset-bottom));line-height:1.7}
+
+/* 签约引导 */
+.sign-box{background:#FFF8EC;border:1px solid #FFE3B8;border-radius:14px;padding:13px 14px;
+  margin-top:12px;font-size:13px;line-height:1.7;color:#8A5A00}
+#toast{position:fixed;left:50%;bottom:110px;transform:translate(-50%,10px);
+  background:rgba(20,26,36,.9);color:#fff;padding:11px 18px;border-radius:12px;
+  font-size:13.5px;opacity:0;pointer-events:none;transition:.22s;z-index:999;max-width:82%;
+  text-align:center;line-height:1.5}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 摄像头扫码 */
+#camView{position:fixed;inset:0;background:#000;z-index:500;display:flex;
+  flex-direction:column;align-items:center;justify-content:center}
+#camVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-mask{position:relative;width:240px;height:240px}
+.cam-frame{position:absolute;inset:0;border-radius:22px;
+  box-shadow:0 0 0 2000px rgba(0,0,0,.58);border:2.5px solid rgba(255,255,255,.92)}
+.cam-tip{position:absolute;bottom:-44px;left:-40px;right:-40px;text-align:center;
+  color:#fff;font-size:13.5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.cam-close{position:absolute;bottom:calc(44px + env(safe-area-inset-bottom));left:50%;
+  transform:translateX(-50%);border:none;background:rgba(255,255,255,.22);color:#fff;
+  padding:13px 44px;border-radius:999px;font-size:15px;font-weight:650;
+  backdrop-filter:blur(6px)}
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="loginView" class="hidden">
+  <div class="lg-logo">💧</div>
+  <h1>极速水控</h1>
+  <p class="lg-sub">填你在<b>官方 App</b> 里登录用的手机号<br>验证码会发到那个手机上</p>
+  <div class="lg-field">
+    <span class="pfx">+86</span>
+    <input id="lgPhone" type="tel" maxlength="11" placeholder="手机号" inputmode="numeric">
+  </div>
+  <div class="lg-field">
+    <input id="lgCode" type="tel" maxlength="6" placeholder="短信验证码" inputmode="numeric">
+    <button class="code-btn" id="lgCodeBtn" onclick="sendCode()">获取验证码</button>
+  </div>
+  <button class="lg-btn" id="lgLoginBtn" onclick="doLogin()">登录</button>
+  <button class="lg-btn" style="background:#fff;color:#2F6BFF;box-shadow:0 2px 10px rgba(20,26,36,.07);margin-top:10px"
+    onclick="openSettings()">已有 token，直接填入</button>
+  <div class="lg-foot">首次使用某一类设备时，需要开通支付宝免密支付<br>开通后每次启动都不再弹支付页<br><br>
+    <span id="lgVer" style="opacity:.65"></span></div>
+</div>
+
+<header>
+  <div class="hd-row">
+    <div class="hd-title">极速<span>水控</span></div>
+    <button class="icon-btn" onclick="openSettings()">⚙</button>
+  </div>
+  <div class="acct" id="acct"><span class="pill">未登录</span></div>
+</header>
+
+<div id="runningBox"></div>
+<div class="list" id="list"></div>
+
+<div class="bar">
+  <button class="btn ghost" onclick="loadDevices(true)">↻</button>
+  <button class="btn primary" onclick="openScan()">⌁ 扫码启动</button>
+  <button class="btn ghost" style="flex:0 0 60px" onclick="openManual()">⌨</button>
+</div>
+
+<!-- 选规格 -->
+<div class="mask" id="mask" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh-title" id="shTitle">选择</div>
+  <div class="sh-sub" id="shSub"></div>
+  <div id="opts"></div>
+  <button class="sh-btn" id="startBtn" onclick="doStart()">启动</button>
+  <div class="tip" id="shTip"></div>
+</div>
+
+<!-- 扫码/输入 -->
+<div class="sheet" id="scanSheet">
+  <div class="grab"></div>
+  <div class="sh-title">扫码 / 输入设备码</div>
+  <div class="sh-sub">扫完自动识别；也可以粘贴二维码里的内容</div>
+  <textarea id="scanInput" rows="3" placeholder="qeykid 后面的设备码，或完整二维码链接"></textarea>
+  <button class="sh-btn" onclick="doScan()">确认</button>
+  <input type="file" accept="image/*" id="qrFile" style="display:none" onchange="scanFile(this)">
+  <button class="sh-btn" style="background:#fff;color:#2F6BFF;box-shadow:none;border:1.5px solid #EDF0F4;margin-top:10px"
+    onclick="document.getElementById('qrFile').click()">从相册选二维码图片</button>
+  <div class="tip">首次用某台新设备时用它；常用设备直接点卡片即可</div>
+</div>
+
+<!-- 签约引导 -->
+<div class="sheet" id="signSheet">
+  <div class="grab"></div>
+  <div class="sh-title">需要开通免密支付</div>
+  <div class="sh-sub">第一次用这类设备时，要向支付宝授权一次</div>
+  <div class="sign-box" id="signBox">
+    这是<b>官方</b>的支付宝代扣签约，和官方 App 里那个授权弹窗是同一个。<br>
+    开通后：先用后付，每次启动不再弹支付页。<br>
+    金额由官方按你的实际用量结算，本工具不经手你的钱。
+  </div>
+  <button class="sh-btn" onclick="goSign()">去支付宝授权</button>
+  <div class="tip">授权完回到这里，再点一次启动即可</div>
+</div>
+
+<!-- 设置 -->
+<div class="sheet" id="setSheet">
+  <div class="grab"></div>
+  <div class="sh-title">账号设置</div>
+  <div class="sh-sub">当前登录的凭证</div>
+  <textarea id="tokenInput" rows="3" placeholder="粘贴 token"></textarea>
+  <button class="sh-btn" onclick="saveToken()">保存</button>
+  <button class="sh-btn" style="margin-top:10px;background:#FFF1F0;color:#F04438;box-shadow:none"
+    onclick="logout()">退出登录 / 换账号</button>
+  <div class="tip" id="verLine" style="margin-top:16px"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 摄像头扫码 -->
+<div id="camView" class="hidden">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div class="cam-mask">
+    <div class="cam-frame"></div>
+    <div class="cam-tip">把设备上的二维码放进框内</div>
+  </div>
+  <button class="cam-close" onclick="closeCam()">取消</button>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+
+
+
+
+
+let DEVICES = [];
+let pendingDeep = null;
+let curDev = null, curSku = null, SKUS = [];
+let running = null, runTimer = null;
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), 2200);
+  try{ PQ.toast(msg); }catch(e){}
+}
+function jget(path, body, cat, imei){
+  try{
+    const raw = PQ.call(path, body||'', cat||'', imei||'');
+    return JSON.parse(raw);
+  }catch(e){
+    return {code:-1, msg:'请求失败 ' + e};
+  }
+}
+function fmtMoney(v){ return '¥' + Number(v||0).toFixed(2); }
+
+/* ---------- 登录 ---------- */
+let cdTimer = null;
+
+function showLogin(){
+  $('#loginView').classList.remove('hidden');
+}
+function hideLogin(){
+  $('#loginView').classList.add('hidden');
+}
+
+function sendCode(){
+  const phone = $('#lgPhone').value.trim();
+  if(!/^1\d{10}$/.test(phone)){ toast('请输入 11 位手机号'); return; }
+  const btn = $('#lgCodeBtn');
+  btn.disabled = true; btn.textContent = '发送中';
+  // template=reg 是必须的，缺了服务端会报"参数不正确"
+  const r = jget('/common/sms/sendCode', 'phone=' + phone + '&template=reg');
+  if(r.code === 0){
+    toast('验证码已发送，5 分钟内有效，请填最新那条');
+    let n = 60;
+    btn.textContent = n + 's';
+    cdTimer = setInterval(()=>{
+      n--;
+      if(n <= 0){ clearInterval(cdTimer); btn.disabled = false; btn.textContent = '获取验证码'; }
+      else btn.textContent = n + 's';
+    }, 1000);
+  }else{
+    btn.disabled = false; btn.textContent = '获取验证码';
+    toast(r.msg || '发送失败');
+  }
+}
+
+function doLogin(){
+  const phone = $('#lgPhone').value.trim();
+  const code  = $('#lgCode').value.trim();
+  if(!/^1\d{10}$/.test(phone)){ toast('请输入正确的手机号'); return; }
+  if(code.length < 4){ toast('请输入验证码'); return; }
+
+  const btn = $('#lgLoginBtn');
+  btn.disabled = true; btn.textContent = '登录中…';
+
+  // 登录请求不应携带旧 token
+  PQ.setToken('');
+  // 注意：验证码的字段名是 verify（不是 authCode），接口是 /user/reg
+  const r = jget('/user/reg',
+    `channel=android_app&phone=${phone}&verify=${code}`);
+
+  btn.disabled = false; btn.textContent = '登录';
+
+  if(r.code === 0 && r.data){
+    // 兼容不同返回体：token 可能在 data.token / data.accessToken / 直接是字符串
+    const d = r.data;
+    const tk = (typeof d === 'string') ? d
+             : (d.token || d.accessToken || d.authorization || (d.userInfo && d.userInfo.token) || '');
+    if(!tk){
+      toast('登录成功但没拿到 token：' + JSON.stringify(d).slice(0, 60));
+      return;
+    }
+    PQ.setToken(tk);
+    hideLogin();
+    toast('登录成功');
+    loadAccount();
+    loadDevices();
+    if(pendingDeep){ const d = pendingDeep; pendingDeep = null; setTimeout(()=>openDevice(d), 500); }
+  }else{
+    toast(r.msg || '验证码错误或已过期，请重新获取');
+  }
+}
+
+function logout(){
+  PQ.setToken('');
+  closeSheet();
+  DEVICES = []; running = null;
+  $('#runningBox').innerHTML = '';
+  $('#list').innerHTML = '';
+  $('#acct').innerHTML = '<span class="pill">未登录</span>';
+  showLogin();
+}
+
+/* ---------- 免密签约 ---------- */
+function ensureSign(cb){
+  const r = jget('/alipay/isSign');
+  if(r.code === 0 && r.data === true){ cb(); return; }
+  if(r.code === 0 && r.data === false){
+    askSign(cb);
+  }else{
+    // 查询失败不阻断，交给服务端在 unlock 时拦
+    cb();
+  }
+}
+
+function askSign(cb){
+  const s = jget('/alipay/signUrl');
+  const url = (s.code === 0 && s.data && s.data.url) ? s.data.url : '';
+  if(!url){ toast('获取签约链接失败，请稍后再试'); return; }
+  closeSheet();
+  $('#signBox').dataset.url = url;
+  openSheet('#signSheet');
+}
+
+function goSign(){
+  const url = $('#signBox').dataset.url;
+  closeSheet();
+  try{ PQ.openUrl(url); }catch(e){}
+  toast('请在支付宝里完成授权');
+}
+
+/* ---------- 账号 ---------- */
+function loadAccount(){
+  const r = jget('/user/info');
+  const box = $('#acct');
+  if(r.code === 0 && r.data){
+    const d = r.data;
+    const phone = (d.phone||'').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+    box.innerHTML = `<span class="pill">${phone}</span>
+      <span>余额 ${fmtMoney(d.balance)}</span>`;
+  }else{
+    box.innerHTML = `<span class="pill" style="background:#FFECEC;color:#F04438">未登录</span>
+      <span>点右上角设置 token</span>`;
+  }
+}
+
+/* ---------- 设备 ---------- */
+const KIND = { '00':{t:'洗衣',c:'wash',e:'🧺'}, '04':{t:'饮水',c:'water',e:'💧'},
+               '08':{t:'洗浴',c:'bath',e:'🚿'} };
+
+function loadDevices(manual){
+  const list = $('#list');
+  if(!PQ.getToken()){ showEmpty(); return; }
+  if(manual) list.style.opacity = .5;
+  const r = jget('/goods/latestUsed');
+  list.style.opacity = 1;
+  if(r.code !== 0){
+    list.innerHTML = `<div class="empty"><div class="big">⚠️</div>
+      <p>${r.msg||'加载失败'}</p>
+      <p><a class="link" href="javascript:openSettings()">检查账号设置</a></p></div>`;
+    return;
+  }
+  DEVICES = r.data || [];
+  if(!DEVICES.length){ showEmpty(); return; }
+
+  list.innerHTML = DEVICES.map((d,i)=>{
+    const k = KIND[d.categoryCode] || {t:'设备',c:'',e:'📦'};
+    const busy = String(d.workStatus) === '20';
+    return `<div class="card ${busy?'dead':''}" onclick="pickDevice(${i})">
+      <div class="ico ${k.c}">${k.e}</div>
+      <div class="meta">
+        <div class="name">${d.goodsName}
+          <span class="badge ${busy?'busy':'idle'}">${busy?'使用中':'空闲'}</span>
+        </div>
+        <div class="org">${k.t} · ${d.orgName||''}</div>
+      </div>
+      <div class="go">›</div>
+    </div>`;
+  }).join('');
+}
+
+function showEmpty(){
+  $('#list').innerHTML = `<div class="empty"><div class="big">📭</div>
+    <p>还没有使用记录</p>
+    <p>用「扫码启动」扫一次设备上的码</p></div>`;
+}
+
+/* ---------- 选设备 ---------- */
+function pickDevice(i){ openDevice(DEVICES[i]); }
+
+function openDevice(d){
+  curDev = d; curSku = null; SKUS = [];
+  const k = KIND[d.categoryCode] || {t:'设备',e:'📦'};
+  $('#shTitle').textContent = d.goodsName;
+  $('#shSub').textContent = k.t + ' · ' + (d.orgName||'');
+  $('#opts').innerHTML = '<div class="tip">读取中…</div>';
+  $('#shTip').textContent = '';
+  $('#startBtn').disabled = true;
+  openSheet('#sheet');
+
+  const det = jget('/goods/normal/details',
+    `goodsId=${d.goodsId}&shopId=${d.shopId}&categoryCode=${d.categoryCode}`);
+  if(det.code !== 0){ $('#opts').innerHTML = `<div class="tip">${det.msg}</div>`; return; }
+  curDev.detail = det.data;
+  if(det.data.deviceErrorMsg){
+    $('#shTip').innerHTML = `<span style="color:#F04438">设备故障：${det.data.deviceErrorMsg}</span>`;
+  }
+
+  const sk = jget('/goods/normal/skus',
+    `goodsId=${d.goodsId}&shopId=${d.shopId}&categoryCode=${d.categoryCode}`);
+  SKUS = (sk.data||[]);
+  if(!SKUS.length){ $('#opts').innerHTML = '<div class="tip">暂无可用规格</div>'; return; }
+
+  $('#opts').innerHTML = SKUS.map((s,i)=>`
+    <div class="opt" id="opt${i}" onclick="selSku(${i})">
+      <div class="o-ico">${(s.feature||'').includes('热')?'♨️':'❄️'}</div>
+      <div>
+        <div class="o-name">${s.feature||('规格'+(i+1))}</div>
+        <div class="o-price">${fmtMoney(s.price)} 起 · ${s.unit||'-'}元/单位</div>
+      </div>
+      <div class="o-radio"></div>
+    </div>`).join('');
+  selSku(0);
+}
+
+function selSku(i){
+  curSku = SKUS[i];
+  SKUS.forEach((_,n)=>{
+    const el = $('#opt'+n);
+    if(el) el.classList.toggle('sel', n===i);
+  });
+  $('#startBtn').disabled = false;
+}
+
+/* ---------- 启动 ---------- */
+function doStart(){
+  if(!curDev || !curSku) return;
+  ensureSign(realStart);
+}
+
+function realStart(){
+  if(!curDev || !curSku) return;
+  const btn = $('#startBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>&nbsp;启动中';
+  const det = curDev.detail || {};
+  const cat = det.categoryCode || curDev.categoryCode;
+
+  // 饮水走 water/unlock，洗浴走 shower/unlock；洗衣是独立下单流程
+  let path = '/goods/water/unlock';
+  if(cat === '08') path = '/goods/shower/unlock';
+  if(cat === '00'){
+    btn.disabled = false; btn.textContent = '启动';
+    $('#shTip').innerHTML = '<span style="color:#F79009">洗衣需先下单支付，暂请用官方 App</span>';
+    toast('洗衣暂未支持，请用官方 App');
+    return;
+  }
+
+  const r = jget(path, `skuId=${curSku.skuId}&promotions=`, cat, det.imei || '');
+
+  btn.disabled = false;
+  btn.textContent = '启动';
+
+  if(r.code === 0){
+    try{ PQ.vibrate(40); }catch(e){}
+    closeSheet();
+    startRunning(curDev, curSku, r.data);
+  }else{
+    // 若服务端要求支付，尝试拉起支付宝
+    const d = r.data || {};
+    const payUrl = d.payUrl || d.alipayUrl || d.url || '';
+    if(payUrl){ try{ PQ.openUrl(payUrl); }catch(e){} }
+    toast(r.msg || ('启动失败 ' + r.code));
+    $('#shTip').innerHTML = `<span style="color:#F04438">${r.msg||''}</span>`;
+  }
+}
+
+function startRunning(dev, sku, data){
+  // 记住这台，供 NFC 标签（AAR 只有包名，带不了参数）兜底恢复
+  try{
+    localStorage.setItem('lastDev', JSON.stringify({
+      goodsId: dev.goodsId, shopId: dev.shopId,
+      categoryCode: dev.categoryCode, goodsName: dev.goodsName
+    }));
+  }catch(e){}
+  running = { dev, sku, orderNo: data && data.orderNo, t0: Date.now() };
+  renderRunning();
+  clearInterval(runTimer);
+  runTimer = setInterval(renderRunning, 1000);
+}
+
+function renderRunning(){
+  if(!running){ $('#runningBox').innerHTML=''; return; }
+  const sec = Math.floor((Date.now()-running.t0)/1000);
+  const mm = String(Math.floor(sec/60)).padStart(2,'0');
+  const ss = String(sec%60).padStart(2,'0');
+  $('#runningBox').innerHTML = `
+    <div class="running">
+      <div class="r-top">
+        <div>
+          <div class="r-t">${running.dev.goodsName} · ${running.sku.feature||''}</div>
+          <div class="r-s">已启动 ${running.orderNo?('· '+running.orderNo):''}</div>
+        </div>
+        <div style="font-size:22px">💧</div>
+      </div>
+      <div class="r-time">${mm}:${ss}</div>
+      <div class="r-hint">用完请在设备上按【停止】键，本机无法远程停止</div>
+      <button class="r-stop" onclick="doStop()">已完成，刷新状态</button>
+    </div>`;
+}
+
+function doStop(){
+  if(!running) return;
+  const r = jget('/goods/endWater', `goodsId=${running.dev.goodsId}`);
+  running = null; clearInterval(runTimer); renderRunning();
+  loadDevices(true); loadAccount();
+  if(r.code === 0) toast('已结束');
+  else toast('已刷新（饮水机需在设备上按停止）');
+}
+
+/* ---------- 扫码 ---------- */
+let camStream = null, camTimer = null, camDet = null, camBusy = false, camHint = null;
+
+async function openScan(){
+  if(!('BarcodeDetector' in window)){
+    toast('这台设备不支持自动识别，请手动输入');
+    openManual();
+    return;
+  }
+  $('#camView').classList.remove('hidden');
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} },
+      audio:false
+    });
+    const v = $('#camVideo');
+    v.srcObject = camStream;
+    await v.play();
+    camDet = new BarcodeDetector({ formats:['qr_code'] });
+    camTimer = setInterval(scanFrame, 280);
+    camHint = setTimeout(()=>{ toast('一直没认出来？点「取消」可手动输入'); }, 15000);
+  }catch(e){
+    toast('摄像头打不开：' + (e && e.message ? e.message : e));
+    closeCam(); openManual();
+  }
+}
+
+async function scanFrame(){
+  if(camBusy || !camDet) return;
+  const v = $('#camVideo');
+  if(!v.videoWidth) return;
+  camBusy = true;
+  try{
+    const codes = await camDet.detect(v);
+    if(codes && codes.length && codes[0].rawValue){
+      const raw = codes[0].rawValue;
+      closeCam();
+      handleQr(raw);
+    }
+  }catch(e){
+    // 本机不支持自动识别（例如没有 GMS 的国产 ROM）→ 直接降级手动输入
+    if(!window._detErr){
+      window._detErr = 1;
+      console.log('detectErr: ' + e);
+      closeCam();
+      toast('这台机器不支持自动识别，请手动输入');
+      openManual();
+    }
+  }
+  camBusy = false;
+}
+
+function closeCam(){
+  if(camTimer){ clearInterval(camTimer); camTimer = null; }
+  if(camHint){ clearTimeout(camHint); camHint = null; }
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  camDet = null;
+  $('#camView').classList.add('hidden');
+  const v = $('#camVideo');
+  if(v) v.srcObject = null;
+}
+
+/* 二维码原文 -> 设备码 -> 调 scan/v2
+   字段名是动态的（qeykid/NQT/IMEI/SN），不是固定的 key= */
+function handleQr(raw){
+  let v = String(raw).trim();
+  const m = v.match(/[?&](qeykid|NQT|IMEI|SN)=([^&]+)/i);
+  if(m){
+    scanKey(m[1], decodeURIComponent(m[2]), false);
+  }else{
+    tryFields(['qeykid', 'NQT', 'IMEI', 'SN'], 0, v);
+  }
+}
+
+function tryFields(fields, i, v){
+  if(i >= fields.length){ toast('这个码认不出来，可以手动输入设备码'); return; }
+  if(!scanKey(fields[i], v, true)) tryFields(fields, i + 1, v);
+}
+
+function scanKey(field, value, silent){
+  const r = jget('/goods/scan/v2', `${field}=${encodeURIComponent(value)}`);
+  if(r.code === 0 && r.data){ onScanned(r.data); return r; }
+  if(!silent) toast(r.msg || '没认出来，试试手动输入');
+  return null;
+}
+
+/* 扫到设备 -> 直接打开该设备 */
+function onScanned(d){
+  const kind = KIND[d.categoryCode] || { t: '设备' };
+  const dev = {
+    goodsId: d.id,
+    shopId: d.shopId,
+    categoryCode: d.categoryCode,
+    goodsName: d.categoryName || kind.t,
+    orgName: d.categoryName || '',
+    workStatus: 10
+  };
+  toast('识别成功：' + (d.categoryName || '设备'));
+  openDevice(dev);
+}
+
+function openManual(){ $('#scanInput').value=''; openSheet('#scanSheet'); }
+
+/* 原生回传（保留兼容） */
+function onScanResult(raw){ if(raw) handleQr(raw); }
+
+/* 从相册选图识别 */
+async function scanFile(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  if(!('BarcodeDetector' in window)){ toast('这台设备不支持图片识别'); return; }
+  try{
+    const bmp = await createImageBitmap(f);
+    const d = new BarcodeDetector({ formats:['qr_code'] });
+    const codes = await d.detect(bmp);
+    if(codes && codes.length) handleQr(codes[0].rawValue);
+    else toast('图片里没找到二维码');
+  }catch(e){
+    toast('识别失败');
+  }
+  input.value = '';
+}
+
+function doScan(){
+  const v = $('#scanInput').value.trim();
+  if(!v){ toast('请输入设备码'); return; }
+  closeSheet();
+  handleQr(v);
+}
+
+/* ---------- 设置 ---------- */
+function openSettings(){
+  $('#tokenInput').value = PQ.getToken() || '';
+  try{
+    const m = JSON.parse(PQ.getMeta() || '{}');
+    $('#verLine').textContent = '版本 v' + (m.version || '?')
+      + ' · build ' + (m.code || '?')
+      + (m.model ? ' · ' + m.model : '');
+  }catch(e){}
+  openSheet('#setSheet');
+}
+function saveToken(){
+  const t = $('#tokenInput').value.trim();
+  PQ.setToken(t);
+  closeSheet();
+  if(t){ hideLogin(); loadAccount(); loadDevices(true); }
+}
+
+/* ---------- 弹层 ---------- */
+function openSheet(sel){
+  $('#mask').classList.add('on');
+  $(sel).classList.add('on');
+}
+function closeSheet(){
+  $('#mask').classList.remove('on');
+  document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));
+}
+$('#mask').addEventListener('click', closeSheet);
+
+/* ---------- 启动 ---------- */
+function boot(){
+  let VER = {};
+  try{ VER = JSON.parse(PQ.getMeta() || '{}'); }catch(e){}
+  const lv = $('#lgVer');
+  if(lv) lv.textContent = '极速水控 v' + (VER.version || '?') + ' · build ' + (VER.code || '?');
+
+  // NFC 标签带过来的深链
+  let deep = '';
+  try{ deep = PQ.getDeepLink() || ''; }catch(e){}
+
+  const t = PQ.getToken();
+  if(!t){
+    if(deep) pendingDeep = deep;
+    showLogin();
+    return;
+  }
+  const r = jget('/user/info');
+  if(r.code === 0 && r.data){
+    hideLogin();
+    if(deep){
+      handleDeepLink(deep);
+    }else{
+      // AAR 标签只带包名、带不了参数 -> 用上次使用的设备兜底
+      let cold = false;
+      try{ cold = PQ.isColdStart(); }catch(e){}
+      if(cold){
+        let ld = null;
+        try{ ld = localStorage.getItem('lastDev'); }catch(e){}
+        if(ld){
+          try{
+            const d = JSON.parse(ld);
+            setTimeout(()=>openDevice(d), 800);
+          }catch(e){}
+        }
+      }
+    }
+    loadAccount();
+    loadDevices();
+  }else{
+    PQ.setToken('');
+    if(deep) pendingDeep = deep;
+    showLogin();
+  }
+}
+
+/* ---------- NFC 深链 ---------- */
+
+function handleDeepLink(url){
+  if(!url) return;
+  console.log('deepLink: ' + url);
+  let u = url;
+  try{ u = decodeURIComponent(u); }catch(e){}
+  const qi = u.indexOf('?');
+  if(qi < 0) return;
+  const q = {};
+  u.slice(qi + 1).split('&').forEach(kv=>{
+    const i = kv.indexOf('=');
+    if(i < 0) return;
+    q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1) || '');
+  });
+  if(!q.i) return;
+
+  const dev = {
+    goodsId: q.i,
+    shopId: q.s || '',
+    categoryCode: q.c || '04',
+    goodsName: q.n || '设备',
+    orgName: '',
+    workStatus: 10
+  };
+  if(!PQ.getToken()){ pendingDeep = dev; showLogin(); return; }
+  hideLogin();
+  setTimeout(()=>openDevice(dev), 150);
+}
+window.addEventListener('load', boot);
+</script>
+</body>
+</html>
